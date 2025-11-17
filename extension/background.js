@@ -45,6 +45,66 @@ async function callBackend(method, path, body) {
   return res.json();
 }
 
+// Store for active live board polling
+const activeLiveBoards = new Map();
+
+/**
+ * Poll live chat messages for a video
+ */
+async function pollLiveChat(videoId, boardId, pageToken = null) {
+  try {
+    const result = await callBackend('POST', '/api/forumize/live', {
+      videoId,
+      pageToken,
+      removeSpam: true
+    });
+
+    if (!result.isLive) {
+      // Stream ended
+      stopLivePolling(videoId);
+      return;
+    }
+
+    // Store the updated data
+    chrome.storage.local.get(['liveBoards'], (storage) => {
+      const liveBoards = storage.liveBoards || {};
+      liveBoards[videoId] = {
+        boardId: result.boardId,
+        videoTitle: result.videoTitle,
+        channelTitle: result.channelTitle,
+        threads: result.threads,
+        stats: result.stats,
+        lastUpdate: new Date().toISOString()
+      };
+      chrome.storage.local.set({ liveBoards });
+    });
+
+    // Schedule next poll
+    const pollInterval = result.pollingIntervalMillis || 5000;
+    const timeoutId = setTimeout(() => {
+      pollLiveChat(videoId, boardId, result.nextPageToken);
+    }, pollInterval);
+
+    activeLiveBoards.set(videoId, { timeoutId, boardId });
+  } catch (error) {
+    console.error('Live polling error:', error);
+    stopLivePolling(videoId);
+  }
+}
+
+/**
+ * Stop polling for a live stream
+ */
+function stopLivePolling(videoId) {
+  const board = activeLiveBoards.get(videoId);
+  if (board) {
+    clearTimeout(board.timeoutId);
+    activeLiveBoards.delete(videoId);
+    // Mark board as ended
+    callBackend('POST', `/api/messageboard/${board.boardId}/end`).catch(console.error);
+  }
+}
+
 // Listen for messages from content scripts and popup
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   (async () => {
@@ -58,7 +118,11 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         case 'forumizeVideo': {
           const { videoId, videoTitle, videoChannel } = request;
           // Step 1: call backend to forumize comments
-          const forumData = await callBackend('POST', '/api/forumize', { videoId });
+          const forumData = await callBackend('POST', '/api/forumize', {
+            videoId,
+            useAI: true,
+            removeSpam: true
+          });
           // Step 2: persist forum to backend
           const saveRes = await callBackend('POST', '/api/forum/save', {
             videoId,
@@ -78,6 +142,53 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
             }
           });
           sendResponse({ data: forumData, forumId: saveRes.id });
+          break;
+        }
+        case 'startLiveBoard': {
+          const { videoId, videoTitle, videoChannel } = request;
+
+          // Check if already polling this video
+          if (activeLiveBoards.has(videoId)) {
+            sendResponse({
+              success: true,
+              message: 'Live board already active',
+              boardId: activeLiveBoards.get(videoId).boardId
+            });
+            break;
+          }
+
+          // Start live chat processing
+          const result = await callBackend('POST', '/api/forumize/live', {
+            videoId,
+            removeSpam: true
+          });
+
+          if (!result.isLive) {
+            sendResponse({ error: result.error || 'Video is not live' });
+            break;
+          }
+
+          // Start polling
+          pollLiveChat(videoId, result.boardId, result.nextPageToken);
+
+          sendResponse({
+            success: true,
+            boardId: result.boardId,
+            shareToken: result.shareToken,
+            data: result
+          });
+          break;
+        }
+        case 'stopLiveBoard': {
+          const { videoId } = request;
+          stopLivePolling(videoId);
+          sendResponse({ success: true });
+          break;
+        }
+        case 'getLiveBoards': {
+          chrome.storage.local.get(['liveBoards'], (storage) => {
+            sendResponse({ boards: storage.liveBoards || {} });
+          });
           break;
         }
         case 'getAudioSummary': {
