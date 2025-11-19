@@ -1,6 +1,13 @@
 {
-  "buildCommand": "cd webapp && npm run build",
-  "outputDirectory": "webapp/dist",
-  "installCommand": "cd webapp && npm install",
-  "framework": "vite"
+  "version": 2,
+  "name": "forumyzer-webapp",
+  "builds": [
+    {
+      "src": "webapp/package.json",
+      "use": "@vercel/static-build",
+      "config": {
+        "distDir": "dist"
+      }
+    }
+  ]
 }
