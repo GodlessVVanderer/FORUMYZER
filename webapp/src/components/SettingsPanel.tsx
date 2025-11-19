@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { secureStorage } from '../utils/security';
 
 interface FilterSettings {
   spamSensitivity: 'strict' | 'normal' | 'lenient';
@@ -29,16 +30,20 @@ export default function SettingsPanel() {
   const [savedMsg, setSavedMsg] = useState('');
 
   useEffect(() => {
-    const stored = localStorage.getItem('filterSettings');
-    if (stored) {
-      setSettings(JSON.parse(stored));
-    }
+    // Use secure storage instead of direct localStorage
+    const stored = secureStorage.getItem<FilterSettings>('filterSettings', defaultSettings);
+    setSettings(stored);
   }, []);
 
   const save = () => {
-    localStorage.setItem('filterSettings', JSON.stringify(settings));
-    setSavedMsg('Settings saved');
-    setTimeout(() => setSavedMsg(''), 2000);
+    try {
+      secureStorage.setItem('filterSettings', settings);
+      setSavedMsg('✅ Settings saved securely');
+    } catch (err) {
+      setSavedMsg('❌ Failed to save settings');
+      console.error('Settings save error:', err);
+    }
+    setTimeout(() => setSavedMsg(''), 3000);
   };
 
   return (

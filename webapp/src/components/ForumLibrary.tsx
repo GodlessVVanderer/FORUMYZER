@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import ForumDetail from './ForumDetail';
+import { sanitizeText, sanitizeErrorMessage } from '../utils/security';
 
 interface ForumRecord {
   id: string;
@@ -22,7 +22,7 @@ export default function ForumLibrary({ onSelect }: Props) {
   useEffect(() => {
     async function loadLibrary() {
       try {
-        const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/forum/library`);
+        const res = await fetch(`${import.meta.env.VITE_BACKEND_URL || 'http://localhost:3000'}/api/forum/library`);
         if (!res.ok) {
           const data = await res.json();
           throw new Error(data.error || res.statusText);
@@ -30,14 +30,18 @@ export default function ForumLibrary({ onSelect }: Props) {
         const data = await res.json();
         setForums(data);
       } catch (err: any) {
-        setError(err.message || 'Failed to load library');
+        setError(sanitizeErrorMessage(err));
+        console.error('Library load error:', err);
       }
     }
     loadLibrary();
   }, []);
 
+  // Sanitize search input
+  const safeSearch = sanitizeText(search);
+
   const filtered = forums.filter(f =>
-    f.videoTitle?.toLowerCase().includes(search.toLowerCase())
+    f.videoTitle?.toLowerCase().includes(safeSearch.toLowerCase())
   );
 
   return (
@@ -66,9 +70,13 @@ export default function ForumLibrary({ onSelect }: Props) {
               boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
             }}
           >
-            <strong>{forum.videoTitle || forum.videoId}</strong>
-            <p style={{ fontSize: 14, color: '#666', margin: '4px 0' }}>{forum.videoChannel || 'Unknown'}</p>
-            <p style={{ fontSize: 12, color: '#999' }}>{new Date(forum.createdAt).toLocaleDateString()}</p>
+            <strong>{sanitizeText(forum.videoTitle || forum.videoId)}</strong>
+            <p style={{ fontSize: 14, color: '#666', margin: '4px 0' }}>
+              {sanitizeText(forum.videoChannel || 'Unknown')}
+            </p>
+            <p style={{ fontSize: 12, color: '#999' }}>
+              {new Date(forum.createdAt).toLocaleDateString()}
+            </p>
           </div>
         ))}
       </div>

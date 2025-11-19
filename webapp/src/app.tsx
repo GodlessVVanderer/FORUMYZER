@@ -2,7 +2,12 @@ import React, { useEffect, useState } from 'react';
 import ReactDOM from 'react-dom/client';
 import ForumLibrary from './components/ForumLibrary';
 import SettingsPanel from './components/SettingsPanel';
+import ErrorBoundary from './components/ErrorBoundary';
+import { sanitizeText, extractVideoId, sanitizeErrorMessage, RateLimiter } from './utils/security';
 import './styles.css';
+
+// Create rate limiter instance
+const rateLimiter = new RateLimiter();
 
 interface Comment {
   id: string;
@@ -26,15 +31,16 @@ function WebApp() {
   const [loadingAudio, setLoadingAudio] = useState(false);
   const [forumId, setForumId] = useState<string | null>(null);
 
-  const extractVideoId = (url: string) => {
-    const match = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&\n?#]+)/);
-    return match ? match[1] : null;
-  };
-
   const handleForumyze = async () => {
+    // Rate limiting: max 5 forumize attempts per minute
+    if (!rateLimiter.isAllowed('forumize', 5, 60000)) {
+      setError('Too many requests. Please wait a minute before trying again.');
+      return;
+    }
+
     const videoId = extractVideoId(videoUrl);
     if (!videoId) {
-      setError('Invalid YouTube URL');
+      setError('Invalid YouTube URL. Please enter a valid YouTube link.');
       return;
     }
 
@@ -75,12 +81,17 @@ function WebApp() {
             forumData: data
           })
         });
-        if (saveRes.ok) {
-          const saved = await saveRes.json();
-          setForumId(saved.id);
+
+        if (!saveRes.ok) {
+          const errorData = await saveRes.json();
+          throw new Error(errorData.error || 'Failed to save forum');
         }
+
+        const saved = await saveRes.json();
+        setForumId(saved.id);
       } catch (err: any) {
-        setError(err.message);
+        setError(sanitizeErrorMessage(err));
+        console.error('Forumize error:', err);
       } finally {
         setLoading(false);
         setShowBlinds(false);
@@ -90,13 +101,28 @@ function WebApp() {
 
   const handlePodcast = async () => {
     if (!forumId) return;
+
+    // Rate limiting: max 3 podcast generations per minute
+    if (!rateLimiter.isAllowed('podcast', 3, 60000)) {
+      setError('Too many podcast requests. Please wait before trying again.');
+      return;
+    }
+
     setLoadingAudio(true);
+    setError(null);
     try {
       const res = await fetch(`${import.meta.env.VITE_BACKEND_URL || 'http://localhost:3000'}/api/forum/${forumId}/audio`);
+
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.error || 'Failed to generate podcast');
+      }
+
       const data = await res.json();
       setAudioUrl(data.audioUrl);
-    } catch (err) {
-      console.error(err);
+    } catch (err: any) {
+      setError(sanitizeErrorMessage(err));
+      console.error('Podcast error:', err);
     } finally {
       setLoadingAudio(false);
     }
@@ -113,15 +139,20 @@ function WebApp() {
     const [downvotes, setDownvotes] = useState(comment.downvotes || 0);
     const isBotDetected = comment.category === 'bot';
 
+    // Sanitize user-generated content to prevent XSS
+    const safeAuthor = sanitizeText(comment.author);
+    const safeText = sanitizeText(comment.text);
+    const safeCategory = sanitizeText(comment.category);
+
     return (
       <div className={`comment-wrapper ${comment.category === 'toxic' ? 'hell-comment' : ''}`} style={{ marginLeft: depth * 32 }}>
         <div className="comment-author">
-          <div className="avatar">{comment.author[0]}</div>
-          <span className="comment-author-name">{comment.author}</span>
-          <span className={`category-badge ${comment.category}`}>{comment.category}</span>
+          <div className="avatar">{safeAuthor[0] || '?'}</div>
+          <span className="comment-author-name">{safeAuthor}</span>
+          <span className={`category-badge ${comment.category}`}>{safeCategory}</span>
           {isBotDetected && <span className="category-badge bot">🤖 BOT</span>}
         </div>
-        <div className="comment-text">{comment.text}</div>
+        <div className="comment-text">{safeText}</div>
         <div className="comment-actions">
           <button className="upvote-button" onClick={() => setUpvotes(upvotes + 1)}>
             <span className="material-icons">thumb_up</span>
@@ -212,9 +243,9 @@ function WebApp() {
                 <div className="forum-container">
                   <div className="forum-header">
                     <div>
-                      <h2 className="forum-title">{currentForum.videoTitle || 'Forum'}</h2>
+                      <h2 className="forum-title">{sanitizeText(currentForum.videoTitle || 'Forum')}</h2>
                       <p style={{ color: 'var(--text-secondary)', fontSize: '13px', margin: 0 }}>
-                        {currentForum.videoChannel}
+                        {sanitizeText(currentForum.videoChannel || '')}
                       </p>
                     </div>
                     <button onClick={handlePodcast} disabled={loadingAudio} className="btn-primary">
@@ -293,6 +324,8 @@ function WebApp() {
 const root = ReactDOM.createRoot(document.getElementById('root') as HTMLElement);
 root.render(
   <React.StrictMode>
-    <WebApp />
+    <ErrorBoundary>
+      <WebApp />
+    </ErrorBoundary>
   </React.StrictMode>
 );
