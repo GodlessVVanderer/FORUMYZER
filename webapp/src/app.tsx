@@ -3,6 +3,7 @@ import ReactDOM from 'react-dom/client';
 import ForumLibrary from './components/ForumLibrary';
 import ForumDetail from './components/ForumDetail';
 import SettingsPanel from './components/SettingsPanel';
+import './styles.css';
 
 function WebApp() {
   const [tab, setTab] = useState<'current' | 'library' | 'settings'>('library');
@@ -23,45 +24,51 @@ function WebApp() {
   };
 
   return (
-    <div
-      style={{
-        maxWidth: 800,
-        margin: '0 auto',
-        padding: 24,
-        fontFamily: 'system-ui, sans-serif',
-        fontSize: 16
-      }}
-    >
-      <h1 style={{ color: '#FF0033' }}>Forumyzer</h1>
-      <div style={{ display: 'flex', marginBottom: 16 }}>
-        <button onClick={() => setTab('library')} style={tab === 'library' ? tabActiveStyle : tabStyle}>Library</button>
-        <button onClick={() => setTab('current')} style={tab === 'current' ? tabActiveStyle : tabStyle}>Current</button>
-        <button onClick={() => setTab('settings')} style={tab === 'settings' ? tabActiveStyle : tabStyle}>Settings</button>
+    <div className="app-container">
+      <div className="app-header">
+        <div className="logo">
+          <h1>FORUMYZER</h1>
+        </div>
       </div>
-      {tab === 'library' && <ForumLibrary onSelect={handleSelectForum} />}
-      {tab === 'current' && currentForum && <ForumDetail forum={currentForum} />}
-      {tab === 'current' && !currentForum && (
-        <p>Select a forum from the library to view details.</p>
-      )}
-      {tab === 'settings' && <SettingsPanel />}
+      <div className="app-main">
+        <div className="forum-tabs">
+          <button
+            onClick={() => setTab('library')}
+            className={`tab ${tab === 'library' ? 'active' : ''}`}
+          >
+            <span className="material-icons">video_library</span>
+            Library
+          </button>
+          <button
+            onClick={() => setTab('current')}
+            className={`tab ${tab === 'current' ? 'active' : ''}`}
+          >
+            <span className="material-icons">forum</span>
+            Current Forum
+          </button>
+          <button
+            onClick={() => setTab('settings')}
+            className={`tab ${tab === 'settings' ? 'active' : ''}`}
+          >
+            <span className="material-icons">settings</span>
+            Settings
+          </button>
+        </div>
+
+        {tab === 'library' && <ForumLibrary onSelect={handleSelectForum} />}
+        {tab === 'current' && currentForum && <ForumDetail forum={currentForum} />}
+        {tab === 'current' && !currentForum && (
+          <div className="empty-state">
+            <span className="material-icons">forum</span>
+            <h3>No Forum Selected</h3>
+            <p>Select a forum from the library to view details.</p>
+          </div>
+        )}
+        {tab === 'settings' && <SettingsPanel />}
+      </div>
     </div>
   );
 }
-
-const tabStyle: React.CSSProperties = {
-  marginRight: 12,
-  padding: '8px 16px',
-  background: '#f0f0f0',
-  border: '1px solid #ddd',
-  borderRadius: 4,
-  cursor: 'pointer',
-  fontSize: 16
-};
-const tabActiveStyle: React.CSSProperties = {
-  ...tabStyle,
-  borderBottom: '3px solid #FF0033',
-  color: '#FF0033'
-};
 
 const root = ReactDOM.createRoot(document.getElementById('root') as HTMLElement);
 root.render(
