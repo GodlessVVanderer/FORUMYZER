@@ -1,0 +1,84 @@
+name: Deploy to Railway and Vercel
+
+on:
+  push:
+    branches:
+      - main
+      - claude/**
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  deploy-backend:
+    name: Deploy Backend to Railway
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/claude/')
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Install Railway CLI
+        run: npm install -g @railway/cli
+
+      - name: Deploy to Railway
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+        run: |
+          railway link ${{ secrets.RAILWAY_PROJECT_ID }}
+          railway up --detach
+
+  deploy-frontend:
+    name: Deploy Frontend to Vercel
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/claude/')
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Deploy to Vercel
+        uses: amondnet/vercel-action@v25
+        with:
+          vercel-token: ${{ secrets.VERCEL_TOKEN }}
+          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
+          vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
+          working-directory: ./webapp
+          vercel-args: ${{ github.ref == 'refs/heads/main' && '--prod' || '' }}
+
+  comment-preview:
+    name: Comment Preview URLs
+    runs-on: ubuntu-latest
+    needs: [deploy-backend, deploy-frontend]
+    if: github.event_name == 'pull_request' || startsWith(github.ref, 'refs/heads/claude/')
+
+    steps:
+      - name: Comment PR with Preview URLs
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const branch = context.ref.replace('refs/heads/', '');
+            const previewUrl = `https://forumyzer-${branch.replace(/\//g, '-')}.vercel.app`;
+            const backendUrl = `https://forumyzer-backend-${branch.replace(/\//g, '-')}.railway.app`;
+
+            const comment = `## 🚀 Preview Deployment Ready!
+
+            **Frontend:** ${previewUrl}
+            **Backend:** ${backendUrl}
+
+            ### Test the new features:
+            - 📋 Regular video forums with AI classification
+            - 🔴 Live stream message boards
+            - 🤖 Automatic spam filtering
+
+            *Deployments will auto-update on new commits*`;
+
+            if (context.eventName === 'pull_request') {
+              github.rest.issues.createComment({
+                issue_number: context.issue.number,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                body: comment
+              });
+            }

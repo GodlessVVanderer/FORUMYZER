@@ -3,8 +3,11 @@ const cors = require('cors');
 const dotenv = require('dotenv');
 const ForumModel = require('./models/forum');
 const UserModel = require('./models/user');
+const MessageBoardModel = require('./models/messageBoard');
 const forumizeService = require('./services/forumize');
 const { generateAudioSummary } = require('./services/audio');
+const { checkIfLive, processLiveChat } = require('./services/liveStreamService');
+const { detectBot, recordPost, isBotUser } = require('./services/botDetection');
 
 dotenv.config();
 
@@ -23,17 +26,125 @@ app.get('/health', (req, res) => {
 
 // Forumise a video: fetch comments, classify and return threads/stats
 app.post('/api/forumize', async (req, res) => {
-  const { videoId } = req.body;
+  const { videoId, maxResults, useAI, removeSpam } = req.body;
   if (!videoId) {
     return res.status(400).json({ error: 'videoId is required' });
   }
   try {
-    const result = await forumizeService(videoId);
+    const options = {
+      maxResults: maxResults || 50,
+      useAI: useAI !== false,
+      removeSpam: removeSpam !== false
+    };
+    const result = await forumizeService(videoId, options);
     res.json(result);
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: err.message });
   }
+});
+
+// Check if a video is currently live
+app.get('/api/video/:videoId/live-status', async (req, res) => {
+  const { videoId } = req.params;
+  if (!videoId) {
+    return res.status(400).json({ error: 'videoId is required' });
+  }
+  try {
+    const liveStatus = await checkIfLive(videoId);
+    res.json(liveStatus);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Process live chat for a live stream and save to message board
+app.post('/api/forumize/live', async (req, res) => {
+  const { videoId, pageToken, removeSpam } = req.body;
+  if (!videoId) {
+    return res.status(400).json({ error: 'videoId is required' });
+  }
+  try {
+    const options = {
+      pageToken,
+      removeSpam: removeSpam !== false
+    };
+    const result = await processLiveChat(videoId, options);
+
+    if (result.isLive) {
+      // Save to persistent message board
+      const userId = req.headers['x-user-id'] || null;
+      const board = MessageBoardModel.createOrUpdate({
+        videoId,
+        videoTitle: result.videoTitle,
+        videoChannel: result.channelTitle,
+        isLive: true,
+        liveChatId: result.liveChatId,
+        threads: result.threads,
+        stats: result.stats
+      }, userId);
+
+      // Update page token for next poll
+      if (result.nextPageToken) {
+        MessageBoardModel.updatePageToken(board.id, result.nextPageToken);
+      }
+
+      res.json({
+        ...result,
+        boardId: board.id,
+        shareToken: board.shareToken
+      });
+    } else {
+      res.json(result);
+    }
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Get message board by video ID
+app.get('/api/messageboard/video/:videoId', (req, res) => {
+  const board = MessageBoardModel.findByVideoId(req.params.videoId);
+  if (!board) {
+    return res.status(404).json({ error: 'Message board not found' });
+  }
+  res.json(board);
+});
+
+// Get message board by ID
+app.get('/api/messageboard/:id', (req, res) => {
+  const board = MessageBoardModel.findById(req.params.id);
+  if (!board) {
+    return res.status(404).json({ error: 'Message board not found' });
+  }
+  res.json(board);
+});
+
+// Get all message boards for user
+app.get('/api/messageboard/library', (req, res) => {
+  const userId = req.headers['x-user-id'] || null;
+  const boards = MessageBoardModel.findByUser(userId);
+  res.json(boards);
+});
+
+// Mark message board as ended
+app.post('/api/messageboard/:id/end', (req, res) => {
+  const board = MessageBoardModel.markAsEnded(req.params.id);
+  if (!board) {
+    return res.status(404).json({ error: 'Message board not found' });
+  }
+  res.json(board);
+});
+
+// Delete message board
+app.delete('/api/messageboard/:id', (req, res) => {
+  const deleted = MessageBoardModel.deleteBoard(req.params.id);
+  if (!deleted) {
+    return res.status(404).json({ error: 'Message board not found' });
+  }
+  res.json({ success: true });
 });
 
 // Save a forum and return ID/share token (optionally userId from header)
@@ -85,12 +196,42 @@ app.get('/api/forum/share/:token', (req, res) => {
   res.json(forum);
 });
 
-// Add a reply to a thread
+// Add a reply to a thread - with bot detection
 app.post('/api/forum/:id/reply', (req, res) => {
-  const { threadId, author, text, category } = req.body;
+  const { threadId, author, text, category, userId } = req.body;
   if (!threadId || !text) {
     return res.status(400).json({ error: 'threadId and text are required' });
   }
+
+  // Check if user is flagged as bot - can only reply in Hell
+  if (isBotUser(userId)) {
+    const reply = {
+      id: require('uuid').v4(),
+      author: author || 'Anonymous',
+      text,
+      category: 'hell',
+      inHell: true,
+      replies: []
+    };
+    const updatedForum = ForumModel.addReply(req.params.id, threadId, reply);
+    if (!updatedForum) {
+      return res.status(404).json({ error: 'Forum not found' });
+    }
+    return res.json({ 
+      ...updatedForum, 
+      botWarning: 'Your account has been flagged as a bot. You can only reply in Hell.' 
+    });
+  }
+
+  // Record the post for bot detection
+  if (userId) {
+    recordPost(userId, threadId);
+    const botCheck = detectBot(userId);
+    if (botCheck.shouldSendToHell) {
+      console.log(`⚠️ Bot detected: ${userId} - ${botCheck.postCountIn30s} posts in 30s - SENT TO HELL`);
+    }
+  }
+
   const reply = {
     id: require('uuid').v4(),
     author: author || 'Anonymous',

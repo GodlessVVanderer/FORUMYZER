@@ -25,47 +25,78 @@ function getVideoId() {
   return params.get('v');
 }
 
+function isLiveStream() {
+  // Check for live badge
+  const liveBadge = document.querySelector('.ytp-live-badge, .ytp-chrome-bottom .ytp-live');
+  const liveText = document.querySelector('.ytp-time-display .ytp-live');
+  return !!(liveBadge || liveText || document.querySelector('[aria-label*="LIVE"]'));
+}
+
 function addForumyzerButton(videoId) {
   if (document.getElementById('forumyzer-btn')) return;
   const container = document.querySelector('#top-level-buttons-computed');
   if (!container) return;
+
+  const isLive = isLiveStream();
+
   const btn = document.createElement('button');
   btn.id = 'forumyzer-btn';
-  btn.textContent = '📋 Forumyzer';
+  btn.textContent = isLive ? '🔴 Live Board' : '📋 Forumyzer';
   btn.style.cssText = `
     padding: 8px 16px;
     margin: 0 8px;
-    background-color: #FF0033;
+    background-color: ${isLive ? '#CC0000' : '#FF0033'};
     color: white;
     border: none;
     border-radius: 20px;
     cursor: pointer;
     font-size: 14px;
     font-weight: bold;
+    ${isLive ? 'animation: pulse 2s infinite;' : ''}
   `;
+
+  // Add pulse animation for live streams
+  if (isLive && !document.getElementById('forumyzer-pulse-style')) {
+    const style = document.createElement('style');
+    style.id = 'forumyzer-pulse-style';
+    style.textContent = `
+      @keyframes pulse {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.7; }
+      }
+    `;
+    document.head.appendChild(style);
+  }
+
   btn.addEventListener('click', () => {
     btn.disabled = true;
-    btn.textContent = 'Loading...';
+    btn.textContent = isLive ? 'Starting Live Board...' : 'Loading...';
     // Extract video title and channel name from the page (if available)
     const titleElem = document.querySelector('h1.title yt-formatted-string');
     const channelElem = document.querySelector('ytd-channel-name a');
     const videoTitle = titleElem ? titleElem.textContent.trim() : '';
     const videoChannel = channelElem ? channelElem.textContent.trim() : '';
+
     chrome.runtime.sendMessage(
       {
-        action: 'forumizeVideo',
+        action: isLive ? 'startLiveBoard' : 'forumizeVideo',
         videoId,
         videoTitle,
-        videoChannel
+        videoChannel,
+        isLive
       },
       (response) => {
         btn.disabled = false;
-        btn.textContent = '📋 Forumyzer';
+        btn.textContent = isLive ? '🔴 Live Board' : '📋 Forumyzer';
         if (response.error) {
           alert('Forumyzer error: ' + response.error);
         } else {
           // Notify the user or open popup (optional)
-          console.log('Forumyzer created forum', response);
+          console.log(isLive ? 'Live Board started' : 'Forumyzer created forum', response);
+          if (isLive) {
+            btn.textContent = '✅ Live Board Active';
+            btn.style.backgroundColor = '#00AA00';
+          }
         }
       }
     );
