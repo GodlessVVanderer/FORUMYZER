@@ -73,14 +73,14 @@ body {
   letter-spacing: 2px;
   background: repeating-linear-gradient(
       to bottom,
-      var(--primary-text) 0,
-      var(--primary-text) 2px,
+      var(--youtube-red) 0,
+      var(--youtube-red) 2px,
       transparent 2px,
       transparent 4px
     );
   -webkit-background-clip: text;
   background-clip: text;
-  filter: drop-shadow(2px 2px 3px rgba(0,0,0,0.5));
+  filter: drop-shadow(2px 2px 3px rgba(255,0,0,0.5));
 }
 
 body.light-mode .logo h1 {
@@ -1623,4 +1623,287 @@ input:checked + .slider:before {
 }
 .modal-button.danger:hover {
     opacity: 0.9;
+}
+
+/* ========================================
+   LANDING PAGE STYLES
+   ======================================== */
+
+.landing-page {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 100%);
+  color: #fff;
+}
+
+.hero-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 48px;
+  border-bottom: 2px solid var(--youtube-red);
+  background: rgba(0, 0, 0, 0.8);
+  backdrop-filter: blur(10px);
+}
+
+.hero-header .logo h1 {
+  font-size: 48px;
+  letter-spacing: 4px;
+}
+
+.sign-in-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 24px;
+  background: var(--youtube-red);
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.sign-in-btn:hover {
+  background: #cc0000;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(255, 0, 0, 0.4);
+}
+
+.hero-section {
+  text-align: center;
+  padding: 80px 24px 60px;
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+.hero-section h2 {
+  font-size: 56px;
+  font-weight: 700;
+  margin: 0 0 24px;
+  background: linear-gradient(135deg, #fff 0%, #ff0000 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.hero-subtitle {
+  font-size: 20px;
+  color: #aaa;
+  line-height: 1.6;
+  margin: 0;
+}
+
+.features-section {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+  gap: 32px;
+  padding: 60px 48px;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.feature-card {
+  background: linear-gradient(135deg, #1a1a1a 0%, #0f0f0f 100%);
+  border: 1px solid #333;
+  border-radius: 12px;
+  padding: 32px;
+  transition: all 0.3s ease;
+}
+
+.feature-card:hover {
+  border-color: var(--youtube-red);
+  transform: translateY(-4px);
+  box-shadow: 0 8px 24px rgba(255, 0, 0, 0.2);
+}
+
+.feature-icon {
+  font-size: 48px !important;
+  color: var(--youtube-red);
+  margin-bottom: 16px;
+}
+
+.feature-card h3 {
+  font-size: 24px;
+  margin: 0 0 12px;
+  color: #fff;
+}
+
+.feature-card p {
+  color: #aaa;
+  line-height: 1.6;
+  margin: 0 0 20px;
+}
+
+.category-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.badge {
+  padding: 6px 12px;
+  border-radius: 16px;
+  font-size: 12px;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.badge.discussion { background: var(--cat-discussion); color: #fff; }
+.badge.question { background: var(--cat-question); color: #fff; }
+.badge.feedback { background: var(--cat-feedback); color: #fff; }
+.badge.genuine { background: var(--cat-genuine); color: #fff; }
+.badge.bot { background: var(--cat-bot); color: #fff; }
+.badge.spam { background: var(--cat-spam); color: #fff; }
+.badge.toxic { background: var(--cat-toxic); color: #fff; }
+
+.filter-preview, .library-preview, .spam-preview {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.filter-item, .library-item {
+  padding: 8px 12px;
+  background: rgba(255, 0, 0, 0.1);
+  border-left: 3px solid var(--youtube-red);
+  border-radius: 4px;
+  font-size: 14px;
+  color: #ddd;
+}
+
+.podcast-preview {
+  text-align: center;
+  padding: 20px;
+  background: rgba(255, 0, 0, 0.05);
+  border-radius: 8px;
+}
+
+.audio-wave {
+  font-size: 32px;
+  margin-bottom: 12px;
+  animation: wave 2s infinite;
+}
+
+@keyframes wave {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+}
+
+.audio-desc {
+  color: #999;
+  font-size: 13px;
+  margin: 0;
+}
+
+.live-preview {
+  text-align: center;
+  padding: 20px;
+}
+
+.live-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  background: rgba(255, 0, 0, 0.2);
+  border: 1px solid var(--youtube-red);
+  border-radius: 20px;
+  font-weight: 600;
+  margin-bottom: 12px;
+  animation: live-pulse 2s infinite;
+}
+
+@keyframes live-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+
+.spam-stats {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.spam-stats span {
+  padding: 8px 12px;
+  background: rgba(244, 67, 54, 0.1);
+  border-left: 3px solid #F44336;
+  border-radius: 4px;
+  font-size: 14px;
+}
+
+.cta-section {
+  text-align: center;
+  padding: 80px 24px;
+  background: linear-gradient(135deg, #1a0000 0%, #0a0a0a 100%);
+  border-top: 1px solid #333;
+}
+
+.cta-section h2 {
+  font-size: 42px;
+  margin: 0 0 32px;
+  color: #fff;
+}
+
+.cta-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  padding: 18px 48px;
+  background: var(--youtube-red);
+  color: #fff;
+  border: none;
+  border-radius: 50px;
+  font-size: 20px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 20px rgba(255, 0, 0, 0.3);
+}
+
+.cta-button:hover {
+  background: #cc0000;
+  transform: translateY(-4px);
+  box-shadow: 0 8px 32px rgba(255, 0, 0, 0.5);
+}
+
+.cta-subtitle {
+  margin-top: 16px;
+  color: #888;
+  font-size: 14px;
+}
+
+.landing-footer {
+  text-align: center;
+  padding: 40px 24px;
+  border-top: 1px solid #222;
+  background: #0a0a0a;
+  color: #666;
+}
+
+.app-main {
+  padding: 24px;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.sign-out-btn {
+  padding: 8px 20px;
+  background: transparent;
+  color: #fff;
+  border: 1px solid #fff;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: all 0.2s ease;
+}
+
+.sign-out-btn:hover {
+  background: #fff;
+  color: #000;
 }
