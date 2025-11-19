@@ -1,31 +1,6 @@
 {
-  "$schema": "https://openapi.vercel.sh/vercel.json",
-  "version": 2,
-  "name": "forumyzer",
-  "builds": [
-    {
-      "src": "webapp/package.json",
-      "use": "@vercel/static-build",
-      "config": {
-        "distDir": "webapp/dist"
-      }
-    }
-  ],
-  "routes": [
-    {
-      "handle": "filesystem"
-    },
-    {
-      "src": "/(.*)",
-      "dest": "/webapp/dist/$1"
-    }
-  ],
-  "env": {
-    "VITE_BACKEND_URL": "@backend-url",
-    "VITE_OAUTH_CLIENT_ID": "@oauth-client-id"
-  },
-  "buildCommand": "cd webapp && npm install && npm run build",
+  "buildCommand": "cd webapp && npm run build",
   "outputDirectory": "webapp/dist",
-  "framework": "vite",
-  "installCommand": "npm install --prefix webapp"
+  "installCommand": "cd webapp && npm install",
+  "framework": "vite"
 }
