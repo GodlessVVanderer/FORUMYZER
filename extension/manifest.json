@@ -13,7 +13,7 @@
     "default_title": "Forumyzer"
   },
   "oauth2": {
-    "client_id": "YOUR_OAUTH_CLIENT_ID.apps.googleusercontent.com",
+    "client_id": "628522635131-jlnjaq7sh8fqcqcg1irgq5r9c74oi1rj.apps.googleusercontent.com",
     "scopes": [
       "https://www.googleapis.com/auth/youtube.readonly",
       "https://www.googleapis.com/auth/youtube.force-ssl"
