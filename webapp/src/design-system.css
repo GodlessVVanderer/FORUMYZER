@@ -46,10 +46,10 @@
   --text-tertiary: #5f6368;
 
   /* Brand accent - Unified red */
-  --accent-primary: #ff3366;
-  --accent-secondary: #ff6b9d;
-  --accent-glow: rgba(255, 51, 102, 0.2);
-  --accent-glow-strong: rgba(255, 51, 102, 0.4);
+  --accent-primary: #ff0000;
+  --accent-secondary: #ff3333;
+  --accent-glow: rgba(255, 0, 0, 0.2);
+  --accent-glow-strong: rgba(255, 0, 0, 0.4);
 
   /* Category colors */
   --cat-discussion: #00acb5;

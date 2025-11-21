@@ -21,7 +21,7 @@ interface ForumyzedComment {
 }
 
 function WebApp() {
-  const [tab, setTab] = useState<'home' | 'forumyze' | 'library' | 'settings'>('home');
+  const [tab, setTab] = useState<'home' | 'forumyze' | 'library' | 'settings'>('forumyze');
   const [videoUrl, setVideoUrl] = useState('');
   const [currentForumyzed, setCurrentForumyzed] = useState<any>(null);
   const [loading, setLoading] = useState(false);
