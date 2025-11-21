@@ -344,20 +344,36 @@ function WebApp() {
                   )}
 
                   {currentForumyzed.stats && (
-                    <div
-                      className="forum-stats"
-                      style={{ padding: 16, borderBottom: '1px solid var(--border)' }}
-                    >
-                      <span>{currentForumyzed.stats.totalComments} comments</span>
-                      <span style={{ color: 'var(--cat-genuine)' }}>
-                        {currentForumyzed.stats.genuinePercentage}% genuine
-                      </span>
-                      <span style={{ color: 'var(--cat-spam)' }}>
-                        {currentForumyzed.stats.spamPercentage}% spam
-                      </span>
-                      <span style={{ color: 'var(--cat-bot)' }}>
-                        {currentForumyzed.stats.botPercentage}% bot
-                      </span>
+                    <div className="filtering-stats">
+                      <div className="stat-item">
+                        <span className="stat-label">Total Comments</span>
+                        <span className="stat-value">{currentForumyzed.stats.totalComments.toLocaleString()}</span>
+                      </div>
+                      <div className="stat-item stat-filtered">
+                        <span className="stat-label">🗑️ Filtered Out</span>
+                        <span className="stat-value">
+                          {(currentForumyzed.stats.spamFiltered +
+                            currentForumyzed.stats.botsDetected +
+                            currentForumyzed.stats.toxicComments).toLocaleString()}
+                          <span className="stat-percent">
+                            ({((currentForumyzed.stats.spamFiltered +
+                                currentForumyzed.stats.botsDetected +
+                                currentForumyzed.stats.toxicComments) /
+                                currentForumyzed.stats.totalComments * 100).toFixed(1)}%)
+                          </span>
+                        </span>
+                      </div>
+                      <div className="stat-item stat-clean">
+                        <span className="stat-label">✅ Clean Comments</span>
+                        <span className="stat-value">
+                          {currentForumyzed.stats.genuineComments.toLocaleString()}
+                          <span className="stat-percent">({currentForumyzed.stats.genuinePercentage}%)</span>
+                        </span>
+                      </div>
+                      <div className="stat-item stat-topics">
+                        <span className="stat-label">💬 Discussion Topics</span>
+                        <span className="stat-value">{currentForumyzed.stats.topicsFound}</span>
+                      </div>
                     </div>
                   )}
 
