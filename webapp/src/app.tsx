@@ -191,10 +191,42 @@ function WebApp() {
     );
   };
 
-  // Filter forumyzed threads by selected category
-  const filteredThreads = currentForumyzed && activeCategory !== 'all'
-    ? currentForumyzed.threads.filter((t: ForumyzedComment) => t.category === activeCategory)
-    : currentForumyzed?.threads || [];
+  // Filter forumyzed comments by selected category - FIX: backend returns spam/bots/toxic/genuine arrays
+  const filteredThreads = (() => {
+    if (!currentForumyzed) return [];
+
+    // Helper to add category to comments
+    const addCategory = (comments: any[], category: string) =>
+      (comments || []).map(c => ({ ...c, category }));
+
+    switch (activeCategory) {
+      case 'all':
+        // Show ALL comments from all categories with proper category labels
+        return [
+          ...addCategory(currentForumyzed.genuine, 'genuine'),
+          ...addCategory(currentForumyzed.spam, 'spam'),
+          ...addCategory(currentForumyzed.bots, 'bot'),
+          ...addCategory(currentForumyzed.toxic, 'toxic')
+        ];
+      case 'genuine':
+        return addCategory(currentForumyzed.genuine, 'genuine');
+      case 'spam':
+        return addCategory(currentForumyzed.spam, 'spam');
+      case 'bot':
+        return addCategory(currentForumyzed.bots, 'bot');
+      case 'toxic':
+        return addCategory(currentForumyzed.toxic, 'toxic');
+      case 'question':
+      case 'discussion':
+      case 'feedback':
+        // These would need to be categorized within 'genuine' comments
+        return addCategory(currentForumyzed.genuine, 'genuine').filter((c: any) =>
+          c.subcategory === activeCategory
+        );
+      default:
+        return addCategory(currentForumyzed.genuine, 'genuine');
+    }
+  })();
 
   return (
     <div className="app-container">
