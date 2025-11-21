@@ -3,6 +3,7 @@ import ReactDOM from 'react-dom/client';
 import ForumLibrary from './components/ForumLibrary';
 import SettingsPanel from './components/SettingsPanel';
 import ErrorBoundary from './components/ErrorBoundary';
+import LandingPage from './components/LandingPage';
 import { sanitizeText, extractVideoId, sanitizeErrorMessage, RateLimiter } from './utils/security';
 import './styles.css';
 
@@ -20,7 +21,7 @@ interface ForumyzedComment {
 }
 
 function WebApp() {
-  const [tab, setTab] = useState<'forumyze' | 'library' | 'settings'>('forumyze');
+  const [tab, setTab] = useState<'home' | 'forumyze' | 'library' | 'settings'>('home');
   const [videoUrl, setVideoUrl] = useState('');
   const [currentForumyzed, setCurrentForumyzed] = useState<any>(null);
   const [loading, setLoading] = useState(false);
@@ -218,6 +219,13 @@ function WebApp() {
       <div className="app-main">
         <div className="forum-tabs">
           <button
+            onClick={() => setTab('home')}
+            className={`tab ${tab === 'home' ? 'active' : ''}`}
+          >
+            <span className="material-icons">home</span>
+            Features
+          </button>
+          <button
             onClick={() => setTab('forumyze')}
             className={`tab ${tab === 'forumyze' ? 'active' : ''}`}
           >
@@ -239,6 +247,8 @@ function WebApp() {
             Settings
           </button>
         </div>
+
+        {tab === 'home' && <LandingPage />}
 
         {tab === 'forumyze' && (
           <>
