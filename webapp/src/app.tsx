@@ -191,41 +191,37 @@ function WebApp() {
     );
   };
 
-  // Filter forumyzed comments by selected category - FIX: backend returns spam/bots/toxic/genuine arrays
-  const filteredThreads = (() => {
-    if (!currentForumyzed) return [];
+  // Get AI-generated topics or filtered comments
+  const displayContent = (() => {
+    if (!currentForumyzed) return { type: 'none', data: [] };
 
-    // Helper to add category to comments
-    const addCategory = (comments: any[], category: string) =>
-      (comments || []).map(c => ({ ...c, category }));
-
-    switch (activeCategory) {
-      case 'all':
-        // Show ALL comments from all categories with proper category labels
-        return [
-          ...addCategory(currentForumyzed.genuine, 'genuine'),
-          ...addCategory(currentForumyzed.spam, 'spam'),
-          ...addCategory(currentForumyzed.bots, 'bot'),
-          ...addCategory(currentForumyzed.toxic, 'toxic')
-        ];
-      case 'genuine':
-        return addCategory(currentForumyzed.genuine, 'genuine');
-      case 'spam':
-        return addCategory(currentForumyzed.spam, 'spam');
-      case 'bot':
-        return addCategory(currentForumyzed.bots, 'bot');
-      case 'toxic':
-        return addCategory(currentForumyzed.toxic, 'toxic');
-      case 'question':
-      case 'discussion':
-      case 'feedback':
-        // These would need to be categorized within 'genuine' comments
-        return addCategory(currentForumyzed.genuine, 'genuine').filter((c: any) =>
-          c.subcategory === activeCategory
-        );
-      default:
-        return addCategory(currentForumyzed.genuine, 'genuine');
+    // AI creates TOPICS - show those as forum threads
+    if (activeCategory === 'all') {
+      return {
+        type: 'topics',
+        data: currentForumyzed.topics || []
+      };
     }
+
+    // Show filtered categories (spam/bots/toxic) when user clicks those tabs
+    if (activeCategory === 'spam') {
+      return { type: 'comments', data: currentForumyzed.spam || [] };
+    }
+    if (activeCategory === 'bot') {
+      return { type: 'comments', data: currentForumyzed.bots || [] };
+    }
+    if (activeCategory === 'toxic') {
+      return { type: 'comments', data: currentForumyzed.toxic || [] };
+    }
+    if (activeCategory === 'genuine') {
+      return { type: 'comments', data: currentForumyzed.genuine || [] };
+    }
+
+    // Default: show topics
+    return {
+      type: 'topics',
+      data: currentForumyzed.topics || []
+    };
   })();
 
   return (
@@ -370,49 +366,66 @@ function WebApp() {
                       onClick={() => setActiveCategory('all')}
                       className={`tab ${activeCategory === 'all' ? 'active' : ''}`}
                     >
-                      All
-                    </button>
-                    <button
-                      onClick={() => setActiveCategory('genuine')}
-                      className={`tab ${activeCategory === 'genuine' ? 'active' : ''}`}
-                    >
-                      Genuine
-                    </button>
-                    <button
-                      onClick={() => setActiveCategory('question')}
-                      className={`tab ${activeCategory === 'question' ? 'active' : ''}`}
-                    >
-                      Questions
+                      <span className="material-icons">forum</span>
+                      Topics
                     </button>
                     <button
                       onClick={() => setActiveCategory('spam')}
                       className={`tab ${activeCategory === 'spam' ? 'active' : ''}`}
                     >
-                      Spam
+                      <span className="material-icons">block</span>
+                      Spam ({currentForumyzed?.spam?.length || 0})
                     </button>
                     <button
                       onClick={() => setActiveCategory('bot')}
                       className={`tab ${activeCategory === 'bot' ? 'active' : ''}`}
                     >
-                      Bots
+                      🤖 Bots ({currentForumyzed?.bots?.length || 0})
                     </button>
                     <button
                       onClick={() => setActiveCategory('toxic')}
                       className={`tab hell-tab ${activeCategory === 'toxic' ? 'active' : ''}`}
                     >
-                      🔥 Hell
+                      🔥 Hell ({currentForumyzed?.toxic?.length || 0})
                     </button>
                   </div>
 
                   <div className="forum-posts">
-                    {filteredThreads.length > 0 ? (
-                      filteredThreads.map((t: ForumyzedComment) => (
-                        <ForumyzedCommentItem key={t.id} comment={t} />
-                      ))
+                    {displayContent.data.length > 0 ? (
+                      displayContent.type === 'topics' ? (
+                        // Show AI-generated TOPICS as forum threads
+                        displayContent.data.map((topic: any, idx: number) => (
+                          <div key={idx} className="topic-thread">
+                            <div className="topic-header">
+                              <h3 className="topic-title">{sanitizeText(topic.title)}</h3>
+                              <p className="topic-description">{sanitizeText(topic.description)}</p>
+                              <span className={`topic-sentiment ${topic.sentiment}`}>
+                                {topic.sentiment} · {topic.comments?.length || 0} comments
+                              </span>
+                            </div>
+                            <div className="topic-comments">
+                              {(topic.comments || []).map((comment: any) => (
+                                <ForumyzedCommentItem
+                                  key={comment.id}
+                                  comment={{ ...comment, category: 'genuine' }}
+                                />
+                              ))}
+                            </div>
+                          </div>
+                        ))
+                      ) : (
+                        // Show individual filtered comments (spam/bots/toxic)
+                        displayContent.data.map((comment: any) => (
+                          <ForumyzedCommentItem
+                            key={comment.id}
+                            comment={{ ...comment, category: activeCategory }}
+                          />
+                        ))
+                      )
                     ) : (
                       <div className="empty-state">
                         <span className="material-icons">forum</span>
-                        <h3>No Comments in This Category</h3>
+                        <h3>No {activeCategory === 'all' ? 'Topics' : 'Comments'} Found</h3>
                       </div>
                     )}
                   </div>
